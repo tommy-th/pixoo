@@ -7,7 +7,6 @@ from PIL import Image, ImageOps
 
 from ._colors import Palette
 from ._font import retrieve_glyph
-from .simulator import Simulator, SimulatorConfig
 
 
 def clamp(value, minimum=0, maximum=255):
@@ -67,8 +66,7 @@ class Pixoo:
     __refresh_counter_limit = 32
     __simulator = None
 
-    def __init__(self, address, size=64, debug=False, refresh_connection_automatically=True, simulated=False,
-                 simulation_config=SimulatorConfig()):
+    def __init__(self, address, size=64, debug=False, refresh_connection_automatically=True):
         assert size in [16, 32, 64], \
             'Invalid screen size in pixels given. ' \
             'Valid options are 16, 32, and 64'
@@ -77,7 +75,6 @@ class Pixoo:
         self.address = address
         self.debug = debug
         self.size = size
-        self.simulated = simulated
 
         # Total number of pixels
         self.pixel_count = self.size * self.size
@@ -94,10 +91,6 @@ class Pixoo:
         # Resetting if needed
         if self.refresh_connection_automatically and self.__counter > self.__refresh_counter_limit:
             self.__reset_counter()
-
-        # We're going to need a simulator
-        if self.simulated:
-            self.__simulator = Simulator(self, simulation_config)
 
     def clear(self, rgb=Palette.BLACK):
         self.fill(rgb)
@@ -265,10 +258,6 @@ class Pixoo:
                   movement_speed=0,
                   direction=TextScrollDirection.LEFT):
 
-        # This won't be possible
-        if self.simulated:
-            return
-
         # Make sure the identifier is valid
         identifier = clamp(identifier, 0, 19)
 
@@ -290,10 +279,6 @@ class Pixoo:
             self.__error(data)
 
     def set_brightness(self, brightness):
-        # This won't be possible
-        if self.simulated:
-            return
-
         brightness = clamp(brightness, 0, 100)
         response = requests.post(self.__url, json.dumps({
             'Command': 'Channel/SetBrightness',
@@ -304,10 +289,6 @@ class Pixoo:
             self.__error(data)
 
     def set_channel(self, channel):
-        # This won't be possible
-        if self.simulated:
-            return
-
         response = requests.post(self.__url, json.dumps({
             'Command': 'Channel/SetIndex',
             'SelectIndex': int(channel)
@@ -317,10 +298,6 @@ class Pixoo:
             self.__error(data)
         
     def set_clock(self, clock_id):
-        # This won't be possible
-        if self.simulated:
-            return
-
         response = requests.post(self.__url, json.dumps({
             'Command': 'Channel/SetClockSelectId',
             'ClockId': clock_id
@@ -346,10 +323,6 @@ class Pixoo:
         self.set_clock(face_id)
 
     def set_screen(self, on=True):
-        # This won't be possible
-        if self.simulated:
-            return
-
         response = requests.post(self.__url, json.dumps({
             'Command': 'Channel/OnOffScreen',
             'OnOff': 1 if on else 0
@@ -365,9 +338,6 @@ class Pixoo:
         self.set_screen(True)
 
     def set_visualizer(self, equalizer_position):
-        # This won't be possible
-        if self.simulated:
-            return
         response = requests.post(self.__url, json.dumps({
             'Command': 'Channel/SetEqPosition',
             'EqPosition': equalizer_position
@@ -385,11 +355,6 @@ class Pixoo:
             print(error)
 
     def __load_counter(self):
-        # Just assume it's starting at the beginning if we're simulating
-        if self.simulated:
-            self.__counter = 1
-            return
-
         response = requests.post(self.__url, '{"Command": "Draw/GetHttpGifId"}')
         data = response.json()
         if data['error_code'] != 0:
@@ -400,7 +365,6 @@ class Pixoo:
                 print('[.] Counter loaded and stored: ' + str(self.__counter))
 
     def __send_buffer(self):
-
         # Add to the internal counter
         self.__counter = self.__counter + 1
 
@@ -411,14 +375,6 @@ class Pixoo:
 
         if self.debug:
             print(f'[.] Counter set to {self.__counter}')
-
-        # If it's simulated, we don't need to actually push it to the divoom
-        if self.simulated:
-            self.__simulator.display(self.__buffer, self.__counter)
-
-            # Simulate this too I suppose
-            self.__buffers_send = self.__buffers_send + 1
-            return
 
         # Encode the buffer to base64 encoding
         response = requests.post(self.__url, json.dumps({
@@ -442,10 +398,6 @@ class Pixoo:
     def __reset_counter(self):
         if self.debug:
             print(f'[.] Resetting counter remotely')
-
-        # This won't be possible
-        if self.simulated:
-            return
 
         response = requests.post(self.__url, json.dumps({
             'Command': 'Draw/ResetHttpGifId'

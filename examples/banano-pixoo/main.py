@@ -4,7 +4,7 @@ import time
 import requests
 from dotenv import load_dotenv
 
-from pixoo import Pixoo, SimulatorConfig
+from pixoo import Pixoo
 
 # Load .env variables
 load_dotenv()
@@ -61,7 +61,7 @@ def main():
     user_id = defined_value(os.environ.get('FAH_USER_ID'), '501878621')
 
     # Set up a connection and show the background
-    pixoo = Pixoo(ip_address, simulated=True, simulation_config=SimulatorConfig(4))
+    pixoo = Pixoo(ip_address)
     pixoo.draw_image('background.png')
     # pixoo.set_brightness(100) # Only used sometimes if the screen isn't bright enough
     pixoo.draw_text('-----', (20, 49), green)
